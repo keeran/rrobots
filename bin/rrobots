@@ -2,6 +2,7 @@
 require 'rrobots'
 require 'optparse'
 require 'ostruct'
+require 'json'
 
 class OptionsParser
   def self.parse!(args)
@@ -12,6 +13,7 @@ class OptionsParser
     options.speed = 1
     options.timeout = 50000
     options.teams = 8
+    options.tickfile = nil
 
     opts = OptionParser.new do |opts|
       opts.banner = "Usage: rrobots [options] file1 file2 ..."
@@ -30,6 +32,10 @@ class OptionsParser
 
       opts.on("--timeout N", Integer, "Maximum number of ticks for a match") do |n|
         options.timeout = n
+      end
+
+      opts.on("--tickfile <filename>", String, "Output battlefield tick states to string in this file.") do |n|
+        options.tickfile = n
       end
 
       opts.on("--teams N", Integer, "Splits robots into N teams") do |n|
@@ -54,12 +60,14 @@ class OptionsParser
   end
 end
     
-def run_out_of_gui(battlefield)
+def run_out_of_gui(battlefield, options)
   $stderr.puts 'match ends if only 1 bot/team left or dots get here-->|'
-
   until battlefield.game_over
     battlefield.tick
     $stderr.print "." if battlefield.time % (battlefield.timeout / 54).to_i == 0
+  end
+  if filename = options.tickfile
+    File.open(filename, 'w').puts(battlefield.history.to_json)
   end
   print_outcome(battlefield)
   exit 0
@@ -151,5 +159,6 @@ battlefield = setup_battlefield(options, robots)
 if options.gui
   run_in_gui(battlefield, options.resolution[0], options.resolution[1], options.speed)
 else
-  run_out_of_gui(battlefield)
+  run_out_of_gui(battlefield, options)
 end
+

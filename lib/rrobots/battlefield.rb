@@ -1,3 +1,5 @@
+require 'json'
+
 class Battlefield
    attr_reader :width
    attr_reader :height
@@ -9,6 +11,7 @@ class Battlefield
    attr_reader :seed
    attr_reader :timeout  # how many ticks the match can go before ending.
    attr_reader :game_over
+   attr_reader :history
 
   def initialize width, height, timeout, seed
     @width, @height = width, height
@@ -20,6 +23,7 @@ class Battlefield
     @explosions = []
     @timeout = timeout
     @game_over = false
+    @history = []
     srand @seed
   end
 
@@ -57,13 +61,14 @@ class Battlefield
     @game_over = (  (@time >= timeout) or # timeout reached
                     (live_robots.length == 0) or # no robots alive, draw game
                     (live_robots.all?{|r| r.team == live_robots.first.team})) # all other teams are dead
+    history << state(false)
     not @game_over
   end
 
-  def state
-    {:explosions => explosions.map{|e| e.state},
-     :bullets    => bullets.map{|b| b.state},
-     :robots     => robots.map{|r| r.state}}
+  def state(include_dead = true)
+    {:explosions => explosions.map{|e| e.state unless !include_dead && e.dead }.flatten,
+     :bullets    => bullets.map{|b| b.state.merge(:name => 'Bullet_' + bullets.index(b).to_s) unless !include_dead && b.dead}.flatten,
+     :robots     => robots.map{|r| r.state.merge(:name => r.robot.class.name) unless !include_dead && r.dead}.flatten}
   end
 
 end
